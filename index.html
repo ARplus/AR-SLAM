@@ -1,417 +1,56 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>千佛洞AR体验</title>
-    <!-- 使用CDN版本，确保加载顺序 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-            background: #000;
-            color: white;
-            overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        
-        .container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-        
-        #ar-scene {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        
-        /* 强制A-Frame canvas显示 */
-        .a-canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-        
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            padding: 20px;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .start-button {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            border: none;
-            color: #333;
-            padding: 16px 32px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-            transition: all 0.3s ease;
-            min-width: 200px;
-        }
-        
-        .start-button:active {
-            transform: scale(0.95);
-        }
-        
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #FFD700;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .info-text {
-            font-size: 20px;
-            margin-bottom: 15px;
-            font-weight: 500;
-        }
-        
-        .hint-text {
-            font-size: 16px;
-            opacity: 0.8;
-            margin-top: 20px;
-            line-height: 1.5;
-        }
-        
-        .status-indicator {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 999;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .error-details {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid rgba(255, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-            font-size: 14px;
-            text-align: left;
-        }
-        
-        /* iOS Safari 特殊处理 */
-        @supports (-webkit-touch-callout: none) {
-            .container {
-                height: 100vh;
-                height: -webkit-fill-available;
-            }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- 状态指示器 -->
-        <div class="status-indicator" id="statusIndicator">准备中...</div>
+    <a-scene 
+        mindar-image="imageTargetSrc: ./qianfo.mind;" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
         
-        <!-- AR场景 -->
-        <a-scene
-            id="ar-scene"
-            mindar-image="imageTargetSrc: ./qianfo.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; maxTrack: 1"
-            color-space="sRGB"
-            embedded
-            renderer="colorManagement: true, physicallyCorrectLights: true, antialias: false, precision: mediump"
-            vr-mode-ui="enabled: false"
-            device-orientation-permission-ui="enabled: false"
-            loading-screen="enabled: false"
-            background="color: #000000; transparent: false"
-        >
-            <a-assets timeout="10000">
-                <video 
-                    id="arVideo" 
-                    src="https://freela.oss-cn-beijing.aliyuncs.com/AvatarGPTtest/Aurora01.mp4"
-                    loop 
-                    muted 
-                    playsinline 
-                    webkit-playsinline
-                    crossorigin="anonymous"
-                    preload="none">
-                </video>
-            </a-assets>
-
-            <a-entity id="targetEntity" mindar-image-target="targetIndex: 0">
-                <a-video 
-                    id="videoPlane"
-                    src="#arVideo"
-                    width="1"
-                    height="0.6"
-                    position="0 0 0"
-                    rotation="-90 0 0"
-                    opacity="0.9"
-                    visible="false">
-                </a-video>
-                <a-ring 
-                    color="#FFD700" 
-                    radius-inner="0.6" 
-                    radius-outer="0.65"
-                    position="0 0 -0.05"
-                    rotation="-90 0 0"
-                    opacity="0.8"
-                    visible="false"
-                    animation="property: rotation; to: -90 360 0; loop: true; dur: 6000; easing: linear">
-                </a-ring>
-            </a-entity>
-        </a-scene>
-
-        <!-- 开始界面 -->
-        <div class="overlay" id="startOverlay">
-            <div class="info-text">🏛️ 千佛洞AR体验</div>
-            <button class="start-button" id="startButton">开始AR体验</button>
-            <div class="hint-text">点击开始，然后允许摄像头权限</div>
-        </div>
-
-        <!-- 加载界面 -->
-        <div class="overlay hidden" id="loadingOverlay">
-            <div class="spinner"></div>
-            <div class="info-text">正在初始化AR...</div>
-            <div class="hint-text">请稍候，正在启动摄像头</div>
-        </div>
-
-        <!-- 扫描界面 -->
-        <div class="overlay hidden" id="scanningOverlay">
-            <div class="info-text">📱 请扫描千佛洞图标</div>
-            <div class="hint-text">将摄像头对准千佛洞图片<br>保持稳定，距离适中</div>
-        </div>
-
-        <!-- 错误界面 -->
-        <div class="overlay hidden" id="errorOverlay">
-            <div class="info-text">⚠️ 启动遇到问题</div>
-            <div class="error-details" id="errorDetails">
-                错误信息: 未知错误
-            </div>
-            <button class="start-button" onclick="location.reload()">重新加载页面</button>
-            <div class="hint-text">如果问题持续，请尝试：<br>
-                1. 刷新页面<br>
-                2. 检查网络连接<br>
-                3. 使用Chrome浏览器
-            </div>
-        </div>
-    </div>
+        <a-assets>
+            <video 
+                id="arVideo" 
+                src="https://freela.oss-cn-beijing.aliyuncs.com/AvatarGPTtest/Aurora01.mp4"
+                loop 
+                muted 
+                playsinline 
+                webkit-playsinline
+                crossorigin="anonymous">
+            </video>
+        </a-assets>
+        
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-video 
+                src="#arVideo"
+                width="1" 
+                height="0.6" 
+                position="0 0 0" 
+                rotation="-90 0 0"
+                opacity="0.9">
+            </a-video>
+        </a-entity>
+    </a-scene>
 
     <script>
-        // 全局变量
-        let arSystem = null;
-        let sceneEl = null;
-        let isARActive = false;
-        let debugMode = true;
-        
-        // DOM元素
-        const statusIndicator = document.getElementById('statusIndicator');
-        const startOverlay = document.getElementById('startOverlay');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const scanningOverlay = document.getElementById('scanningOverlay');
-        const errorOverlay = document.getElementById('errorOverlay');
-        const errorDetails = document.getElementById('errorDetails');
-        const startButton = document.getElementById('startButton');
+        // 简单的视频控制
+        const targetEntity = document.querySelector('[mindar-image-target]');
+        const video = document.querySelector('#arVideo');
 
-        function updateStatus(message) {
-            statusIndicator.textContent = message;
-            if (debugMode) console.log('Status:', message);
-        }
-
-        function showOverlay(overlay) {
-            document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
-            overlay.classList.remove('hidden');
-        }
-
-        function hideAllOverlays() {
-            document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
-        }
-
-        function showError(message, details = '') {
-            errorDetails.textContent = `错误信息: ${message}\n详细: ${details}`;
-            showOverlay(errorOverlay);
-            updateStatus(`错误: ${message}`);
-        }
-
-        // 等待页面完全加载
-        document.addEventListener('DOMContentLoaded', () => {
-            updateStatus('页面已加载');
-            
-            // 检查必要的库是否加载
-            if (typeof AFRAME === 'undefined') {
-                showError('A-Frame库未加载', '请检查网络连接');
-                return;
-            }
-            
-            if (typeof window.MINDAR === 'undefined') {
-                showError('MindAR库未加载', '请检查网络连接');
-                return;
-            }
-
-            sceneEl = document.querySelector('a-scene');
-            
-            // 等待A-Frame场景初始化
-            if (sceneEl.hasLoaded) {
-                initializeAR();
-            } else {
-                sceneEl.addEventListener('loaded', initializeAR);
-            }
+        targetEntity.addEventListener('targetFound', () => {
+            console.log('目标发现，开始播放视频');
+            video.play();
         });
 
-        function initializeAR() {
-            updateStatus('AR系统初始化中...');
-            
-            try {
-                arSystem = sceneEl.systems["mindar-image"];
-                if (!arSystem) {
-                    throw new Error('MindAR系统未找到');
-                }
-                
-                updateStatus('AR系统就绪');
-                setupEventListeners();
-                
-            } catch (error) {
-                console.error('AR初始化失败:', error);
-                showError('AR系统初始化失败', error.message);
-            }
-        }
-
-        function setupEventListeners() {
-            const targetEntity = document.querySelector('#targetEntity');
-            const video = document.querySelector('#arVideo');
-            const videoPlane = document.querySelector('#videoPlane');
-            const ring = document.querySelector('a-ring');
-
-            // 开始按钮点击
-            startButton.addEventListener('click', async () => {
-                updateStatus('正在启动...');
-                showOverlay(loadingOverlay);
-
-                try {
-                    // 先测试摄像头
-                    updateStatus('检查摄像头权限...');
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        } 
-                    });
-                    
-                    // 立即释放测试流
-                    stream.getTracks().forEach(track => track.stop());
-                    updateStatus('摄像头权限OK');
-
-                    // 启动AR
-                    updateStatus('启动AR引擎...');
-                    await arSystem.start();
-                    
-                    isARActive = true;
-                    updateStatus('AR运行中');
-                    showOverlay(scanningOverlay);
-
-                } catch (error) {
-                    console.error('启动失败:', error);
-                    let errorMsg = '未知错误';
-                    let details = error.message;
-
-                    if (error.name === 'NotAllowedError') {
-                        errorMsg = '摄像头权限被拒绝';
-                        details = '请在浏览器设置中允许摄像头权限';
-                    } else if (error.name === 'NotFoundError') {
-                        errorMsg = '未找到摄像头';
-                        details = '请确保设备有可用的摄像头';
-                    } else if (error.name === 'NotSupportedError') {
-                        errorMsg = '浏览器不支持';
-                        details = '请使用支持WebRTC的现代浏览器';
-                    }
-
-                    showError(errorMsg, details);
-                }
-            });
-
-            // 目标检测事件
-            targetEntity.addEventListener("targetFound", () => {
-                updateStatus('目标已发现');
-                hideAllOverlays();
-                
-                // 显示AR内容
-                videoPlane.setAttribute('visible', true);
-                ring.setAttribute('visible', true);
-                
-                // 播放视频
-                video.play().catch(e => {
-                    console.warn('视频播放失败:', e);
-                    updateStatus('视频播放失败');
-                });
-            });
-
-            targetEntity.addEventListener("targetLost", () => {
-                updateStatus('目标丢失');
-                
-                // 隐藏AR内容
-                videoPlane.setAttribute('visible', false);
-                ring.setAttribute('visible', false);
-                
-                // 暂停视频
-                video.pause();
-                
-                if (isARActive) {
-                    showOverlay(scanningOverlay);
-                }
-            });
-        }
-
-        // 页面可见性变化处理
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && isARActive) {
-                document.querySelector('#arVideo').pause();
-                updateStatus('页面已隐藏');
-            } else if (!document.hidden && isARActive) {
-                updateStatus('页面已显示');
-            }
-        });
-
-        // 全局错误处理
-        window.addEventListener('error', (event) => {
-            console.error('全局错误:', event.error);
-            if (!isARActive) {
-                showError('页面错误', event.error.message);
-            }
+        targetEntity.addEventListener('targetLost', () => {
+            console.log('目标丢失，暂停视频');
+            video.pause();
         });
     </script>
 </body>
