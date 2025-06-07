@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>千佛洞视频AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -13,71 +15,111 @@
         padding: 0;
         overflow: hidden;
         font-family: Arial, sans-serif;
+        height: 100vh;
+        background: #000;
       }
       
-      #loading {
+      #ui-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
         z-index: 9999;
-        font-size: 18px;
+        pointer-events: none;
       }
       
-      #error {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        right: 20px;
-        background: rgba(255, 0, 0, 0.8);
+      #start-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #007AFF;
         color: white;
-        padding: 10px;
-        border-radius: 5px;
-        z-index: 9998;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 18px;
+        cursor: pointer;
+        pointer-events: auto;
+        display: block;
+      }
+      
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 18px;
+        text-align: center;
         display: none;
       }
       
+      #error {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(255, 0, 0, 0.9);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        display: none;
+        pointer-events: auto;
+      }
+      
       #instructions {
-        position: fixed;
+        position: absolute;
         bottom: 20px;
         left: 20px;
         right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 16px;
+        display: none;
+      }
+      
+      #debug-info {
+        position: absolute;
+        top: 10px;
+        left: 10px;
         background: rgba(0, 0, 0, 0.7);
         color: white;
         padding: 10px;
+        font-size: 12px;
         border-radius: 5px;
-        z-index: 9997;
-        text-align: center;
-        font-size: 14px;
+        max-width: 300px;
+        display: none;
+        pointer-events: auto;
       }
     </style>
   </head>
   <body>
-    <!-- 加载提示 -->
-    <div id="loading">正在初始化AR摄像头...</div>
-    
-    <!-- 错误提示 -->
-    <div id="error"></div>
-    
-    <!-- 使用说明 -->
-    <div id="instructions">
-      将摄像头对准千佛洞图标以查看AR内容
+    <div id="ui-overlay">
+      <button id="start-button">开始AR体验</button>
+      <div id="loading">
+        <div>正在启动摄像头...</div>
+        <div style="margin-top: 10px; font-size: 14px;">请允许摄像头权限</div>
+      </div>
+      <div id="error"></div>
+      <div id="instructions">将摄像头对准千佛洞图标</div>
+      <div id="debug-info"></div>
     </div>
 
     <a-scene
-      mindar-image="imageTargetSrc: ./qianfo.mind; filterMinCF:0.0001; filterBeta: 0.01"
+      id="ar-scene"
+      mindar-image="imageTargetSrc: https://arplus.github.io/AR-SLAM/qianfo.mind; filterMinCF:0.0001; filterBeta: 0.01; warmupTolerance: 5; missTolerance: 5"
       color-space="sRGB"
       embedded
-      renderer="colorManagement: true, physicallyCorrectLights"
+      renderer="colorManagement: true, physicallyCorrectLights, antialias: true"
       vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: true"
+      device-orientation-permission-ui="enabled: false"
       background="color: #000"
+      style="display: none;"
     >
       <a-assets>
         <video 
@@ -88,126 +130,203 @@
           muted 
           playsinline 
           webkit-playsinline
-          crossorigin="anonymous">
+          crossorigin="anonymous"
+          preload="auto">
         </video>
       </a-assets>
 
       <a-camera 
         position="0 0 0" 
         look-controls="enabled: false"
-        cursor="rayOrigin: mouse">
+        wasd-controls="enabled: false">
       </a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
+      <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
         <a-video 
+          id="ar-video"
           src="#qianfo-video"
-          width="1.5"
-          height="0.84375"
+          width="1.2"
+          height="0.675"
           position="0 0 0"
           rotation="-90 0 0"
-          opacity="0.9">
+          opacity="0.95"
+          visible="false">
         </a-video>
         
-        <!-- 添加一个简单的边框效果 -->
         <a-plane 
           color="#FFD700" 
-          width="1.6" 
-          height="0.94375" 
+          width="1.3" 
+          height="0.73" 
           position="0 0 -0.001"
           rotation="-90 0 0"
-          opacity="0.3">
+          opacity="0.2"
+          visible="false">
         </a-plane>
       </a-entity>
     </a-scene>
 
     <script>
-      // 错误处理和调试
+      let arStarted = false;
+      let debugMode = false;
+      
+      // UI元素
+      const startButton = document.getElementById('start-button');
       const loading = document.getElementById('loading');
       const errorDiv = document.getElementById('error');
+      const instructions = document.getElementById('instructions');
+      const debugInfo = document.getElementById('debug-info');
+      const arScene = document.getElementById('ar-scene');
+      
+      // 调试信息
+      function updateDebugInfo(message) {
+        if (debugMode) {
+          debugInfo.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+          debugInfo.style.display = 'block';
+        }
+        console.log('AR Debug:', message);
+      }
+      
+      // 检查URL参数是否开启调试
+      const urlParams = new URLSearchParams(window.location.search);
+      debugMode = urlParams.get('debug') === 'true';
       
       function showError(message) {
-        console.error('AR Error:', message);
-        errorDiv.textContent = message;
+        errorDiv.innerHTML = `
+          <div>${message}</div>
+          <button onclick="location.reload()" style="margin-top: 10px; padding: 5px 10px; background: white; color: black; border: none; border-radius: 5px;">重新加载</button>
+        `;
         errorDiv.style.display = 'block';
         loading.style.display = 'none';
+        updateDebugInfo(`错误: ${message}`);
       }
       
       function hideLoading() {
         loading.style.display = 'none';
+        instructions.style.display = 'block';
       }
       
-      // 检查浏览器支持
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showError('您的浏览器不支持摄像头访问，请使用Chrome、Firefox或Safari最新版本');
+      // 检测设备和浏览器
+      function detectEnvironment() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        const isChrome = /Chrome/.test(navigator.userAgent);
+        
+        updateDebugInfo(`设备: ${isIOS ? 'iOS' : isAndroid ? 'Android' : '未知'}`);
+        updateDebugInfo(`浏览器: ${isChrome ? 'Chrome' : isSafari ? 'Safari' : '其他'}`);
+        updateDebugInfo(`协议: ${location.protocol}`);
+        updateDebugInfo(`域名: ${location.hostname}`);
+        
+        return { isIOS, isAndroid, isSafari, isChrome };
       }
       
-      // 检查HTTPS
-      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        showError('请在HTTPS环境下运行此应用，或使用localhost');
+      // 启动AR
+      async function startAR() {
+        if (arStarted) return;
+        
+        try {
+          startButton.style.display = 'none';
+          loading.style.display = 'block';
+          
+          const env = detectEnvironment();
+          updateDebugInfo('开始启动AR...');
+          
+          // 检查基本支持
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('您的浏览器不支持摄像头访问');
+          }
+          
+          // 预先请求权限
+          updateDebugInfo('请求摄像头权限...');
+          
+          const constraints = {
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1280, min: 640 },
+              height: { ideal: 720, min: 480 }
+            }
+          };
+          
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          updateDebugInfo('摄像头权限获取成功');
+          
+          // 停止预览流，让MindAR接管
+          stream.getTracks().forEach(track => track.stop());
+          
+          // 显示AR场景
+          arScene.style.display = 'block';
+          
+          // 等待MindAR初始化
+          updateDebugInfo('等待MindAR初始化...');
+          
+          arStarted = true;
+          
+        } catch (err) {
+          console.error('AR启动失败:', err);
+          let errorMessage = '摄像头启动失败: ' + err.message;
+          
+          if (err.name === 'NotAllowedError') {
+            errorMessage = '请允许摄像头权限，然后重新加载页面';
+          } else if (err.name === 'NotFoundError') {
+            errorMessage = '未找到摄像头设备';
+          } else if (err.name === 'NotSupportedError') {
+            errorMessage = '您的设备不支持WebAR';
+          }
+          
+          showError(errorMessage);
+        }
       }
       
-      // A-Frame场景事件监听
-      const sceneEl = document.querySelector('a-scene');
+      // 事件监听器
+      startButton.addEventListener('click', startAR);
       
-      sceneEl.addEventListener('loaded', () => {
-        console.log('A-Frame场景加载完成');
-      });
-      
-      // MindAR事件监听
-      sceneEl.addEventListener('renderstart', () => {
-        console.log('AR渲染开始');
+      // 场景事件
+      arScene.addEventListener('renderstart', () => {
+        updateDebugInfo('AR渲染开始');
         hideLoading();
       });
       
       // 目标检测事件
-      const targetEl = document.querySelector('[mindar-image-target]');
+      const targetEl = document.getElementById('ar-target');
+      const videoEl = document.getElementById('ar-video');
+      const planeEl = targetEl.querySelector('a-plane');
       
       targetEl.addEventListener('targetFound', () => {
-        console.log('检测到目标图像！');
+        updateDebugInfo('检测到目标！');
+        videoEl.setAttribute('visible', 'true');
+        planeEl.setAttribute('visible', 'true');
+        
         // 确保视频播放
         const video = document.getElementById('qianfo-video');
         if (video.paused) {
-          video.play().catch(e => console.log('视频播放失败:', e));
+          video.play().catch(e => updateDebugInfo('视频播放失败: ' + e.message));
         }
       });
       
       targetEl.addEventListener('targetLost', () => {
-        console.log('目标图像丢失');
+        updateDebugInfo('目标丢失');
+        videoEl.setAttribute('visible', 'false');
+        planeEl.setAttribute('visible', 'false');
       });
       
-      // 处理权限请求
-      window.addEventListener('load', async () => {
-        try {
-          // 请求摄像头权限
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              facingMode: 'environment',  // 后置摄像头
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            } 
-          });
-          
-          // 立即停止流，让MindAR接管
-          stream.getTracks().forEach(track => track.stop());
-          console.log('摄像头权限获取成功');
-          
-        } catch (err) {
-          console.error('摄像头权限获取失败:', err);
-          showError(`摄像头访问失败: ${err.message}。请允许摄像头权限并刷新页面。`);
-        }
-      });
-      
-      // 检查文件是否存在
-      fetch('./qianfo.mind')
+      // 检查文件
+      updateDebugInfo('检查mind文件...');
+      fetch('https://arplus.github.io/AR-SLAM/qianfo.mind')
         .then(response => {
           if (!response.ok) {
-            throw new Error(`qianfo.mind文件未找到 (${response.status})`);
+            throw new Error(`HTTP ${response.status}`);
           }
-          console.log('qianfo.mind文件检查通过');
+          updateDebugInfo('mind文件检查通过');
         })
         .catch(err => {
-          showError(`无法加载qianfo.mind文件: ${err.message}`);
+          updateDebugInfo('mind文件检查失败: ' + err.message);
         });
+      
+      // 页面加载完成
+      window.addEventListener('load', () => {
+        updateDebugInfo('页面加载完成');
+        detectEnvironment();
+      });
     </script>
   </body>
 </html>
