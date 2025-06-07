@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <title>千佛洞视频AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
       body, html {
         margin: 0;
@@ -39,6 +39,7 @@
       }
     </style>
   </head>
+
   <body>
     <div id="start-screen">
       <h2>千佛洞 · 视频AR体验</h2>
@@ -51,19 +52,19 @@
         mindar-image="imageTargetSrc: qianfo.mind"
         color-space="sRGB"
         embedded
-        renderer="colorManagement: true, physicallyCorrectLights"
+        renderer="colorManagement: true, physicallyCorrectLights: true"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: true"
       >
-        <a-assets>
-          <video id="qianfo-video" src="video.mp4" crossorigin="anonymous"
-                autoplay loop muted playsinline webkit-playsinline></video>
+        <a-assets timeout="10000">
+          <video id="qianfo-video" src="video.mp4"
+                 autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-          <a-video 
+          <a-video
             src="#qianfo-video"
             width="1"
             height="0.5625"
@@ -75,9 +76,15 @@
     </div>
 
     <script>
-      document.getElementById("start-button").addEventListener("click", function () {
+      document.getElementById("start-button").addEventListener("click", async function () {
         document.getElementById("start-screen").style.display = "none";
         document.getElementById("ar-scene").style.display = "block";
+        
+        // iOS Safari 兼容：恢复音频上下文
+        const context = AFRAME.scenes[0].audioListener.context;
+        if (context && context.state === "suspended") {
+          await context.resume();
+        }
       });
     </script>
   </body>
