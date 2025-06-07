@@ -10,6 +10,7 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
+            background: #000;
         }
         
         .start-overlay {
@@ -36,6 +37,7 @@
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
+            margin-top: 20px;
         }
         
         .start-button:hover {
@@ -57,25 +59,54 @@
             z-index: 999;
             font-size: 14px;
         }
+        
+        /* 确保A-Frame canvas正确显示 */
+        a-scene {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+        
+        a-scene canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #4CAF50;
+            font-size: 18px;
+            z-index: 500;
+        }
     </style>
 </head>
 <body>
     <!-- 启动界面 -->
     <div class="start-overlay" id="startOverlay">
-        <h2>千佛洞AR体验</h2>
-        <p>点击开始启动AR摄像头</p>
+        <h2>🏛️ 千佛洞AR体验</h2>
+        <p>点击开始启动后摄像头</p>
         <button class="start-button" id="startButton">开始AR体验</button>
+        <div style="margin-top: 20px; font-size: 14px; opacity: 0.8;">
+            请确保光线充足并允许摄像头权限
+        </div>
     </div>
     
     <!-- 状态显示 -->
     <div class="status" id="status">准备启动</div>
+    
+    <!-- 加载中 -->
+    <div class="loading hidden" id="loading">正在初始化AR系统...</div>
 
     <!-- AR场景 -->
     <a-scene 
         id="arScene"
         mindar-image="imageTargetSrc: ./qianfo.mind; autoStart: false;" 
         vr-mode-ui="enabled: false" 
-        device-orientation-permission-ui="enabled: false">
+        device-orientation-permission-ui="enabled: false"
+        embedded
+        renderer="colorManagement: true, physicallyCorrectLights: true">
         
         <a-assets>
             <video 
@@ -107,54 +138,129 @@
         const startOverlay = document.getElementById('startOverlay');
         const startButton = document.getElementById('startButton');
         const status = document.getElementById('status');
+        const loading = document.getElementById('loading');
         const sceneEl = document.getElementById('arScene');
+        
+        let arSystem = null;
+        let sceneReady = false;
+        let cameraStream = null;
         
         function updateStatus(message) {
             status.textContent = message;
-            console.log(message);
+            console.log('状态:', message);
         }
 
-        // 等待A-Frame场景加载完成
+        // 等待A-Frame场景完全加载
         sceneEl.addEventListener('loaded', () => {
-            updateStatus('AR场景已加载，点击开始');
+            updateStatus('场景加载中...');
+            
+            // 等待MindAR系统初始化
+            setTimeout(() => {
+                arSystem = sceneEl.systems["mindar-image"];
+                if (arSystem) {
+                    sceneReady = true;
+                    updateStatus('AR场景就绪，点击开始');
+                } else {
+                    updateStatus('正在等待MindAR初始化...');
+                    waitForMindAR();
+                }
+            }, 1000);
         });
+
+        // 等待MindAR系统初始化
+        function waitForMindAR() {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkInterval = setInterval(() => {
+                attempts++;
+                arSystem = sceneEl.systems["mindar-image"];
+                
+                if (arSystem) {
+                    clearInterval(checkInterval);
+                    sceneReady = true;
+                    updateStatus('AR场景就绪，点击开始');
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    updateStatus('MindAR初始化失败，请刷新页面');
+                } else {
+                    updateStatus(`初始化中... (${attempts}/${maxAttempts})`);
+                }
+            }, 500);
+        }
 
         // 启动按钮点击事件
         startButton.addEventListener('click', async () => {
             try {
-                updateStatus('请求摄像头权限...');
+                if (!sceneReady || !arSystem) {
+                    throw new Error('AR系统还未准备好，请等待初始化完成');
+                }
+
+                updateStatus('正在请求摄像头权限...');
+                startButton.disabled = true;
+                loading.classList.remove('hidden');
                 
-                // 1. 先明确请求摄像头权限
-                const stream = await navigator.mediaDevices.getUserMedia({
+                // 1. 配置后摄像头（参考你的面部检测代码）
+                const constraints = {
                     video: {
-                        facingMode: 'environment', // 后置摄像头
+                        facingMode: 'environment', // 后摄像头
                         width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
+                        height: { ideal: 720 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: false
+                };
                 
-                updateStatus('摄像头权限已获取');
+                // 2. 获取摄像头流
+                updateStatus('正在启动摄像头...');
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                 
-                // 2. 立即释放这个测试流，让MindAR接管
-                stream.getTracks().forEach(track => track.stop());
+                updateStatus('摄像头已启动，正在初始化AR...');
                 
-                updateStatus('正在启动AR系统...');
-                
-                // 3. 获取MindAR系统
-                const arSystem = sceneEl.systems["mindar-image"];
-                
-                if (!arSystem) {
-                    throw new Error('MindAR系统未找到');
+                // 3. 确保视频元素存在并配置
+                let videoElement = document.querySelector('video[mindar-camera]');
+                if (!videoElement) {
+                    // 如果MindAR没有创建video元素，我们创建一个
+                    videoElement = document.createElement('video');
+                    videoElement.setAttribute('mindar-camera', '');
+                    videoElement.style.position = 'absolute';
+                    videoElement.style.top = '0';
+                    videoElement.style.left = '0';
+                    videoElement.style.width = '100%';
+                    videoElement.style.height = '100%';
+                    videoElement.style.objectFit = 'cover';
+                    videoElement.style.zIndex = '1';
+                    videoElement.autoplay = true;
+                    videoElement.muted = true;
+                    videoElement.playsInline = true;
+                    document.body.appendChild(videoElement);
                 }
                 
-                // 4. 启动AR（这时摄像头权限已经获得）
+                // 4. 设置视频流
+                videoElement.srcObject = cameraStream;
+                
+                // 5. 等待视频准备就绪（参考你的代码）
+                await new Promise((resolve, reject) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play().then(() => {
+                            console.log(`摄像头视频就绪: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                            resolve();
+                        }).catch(reject);
+                    };
+                    setTimeout(() => reject(new Error('摄像头视频加载超时')), 5000);
+                });
+                
+                updateStatus('正在启动AR识别...');
+                
+                // 6. 启动AR系统
                 await arSystem.start();
                 
-                // 5. 隐藏启动界面
+                // 7. 隐藏启动界面
                 startOverlay.classList.add('hidden');
-                updateStatus('AR已启动，请扫描图片');
+                loading.classList.add('hidden');
+                updateStatus('AR已启动，请扫描千佛洞图片');
                 
-                // 6. 设置视频控制
+                // 8. 设置视频控制
                 setupVideoControl();
                 
             } catch (error) {
@@ -172,7 +278,16 @@
                 }
                 
                 updateStatus('启动失败: ' + errorMsg);
+                startButton.disabled = false;
+                loading.classList.add('hidden');
+                
                 alert('启动失败: ' + errorMsg + '\n\n请尝试:\n1. 刷新页面\n2. 检查摄像头权限\n3. 使用Chrome浏览器');
+                
+                // 清理资源
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                    cameraStream = null;
+                }
             }
         });
 
@@ -181,7 +296,7 @@
             const video = document.querySelector('#arVideo');
 
             targetEntity.addEventListener('targetFound', () => {
-                updateStatus('目标发现！播放视频');
+                updateStatus('🎯 目标发现！播放视频');
                 video.play().catch(e => {
                     console.error('视频播放失败:', e);
                     updateStatus('视频播放失败');
@@ -189,10 +304,17 @@
             });
 
             targetEntity.addEventListener('targetLost', () => {
-                updateStatus('目标丢失，暂停视频');
+                updateStatus('目标丢失，请重新扫描');
                 video.pause();
             });
         }
+        
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        });
     </script>
 </body>
 </html>
