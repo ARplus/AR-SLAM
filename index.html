@@ -2,90 +2,30 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>千佛洞视频AR</title>
+    <title>WebAR 视频演示</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- ✅ 正确的 A-Frame 和 MindAR-aframe CDN -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <style>
-      body, html {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background: black;
-        color: white;
-        text-align: center;
-      }
-      #start-screen {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: black;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10;
-      }
-      button {
-        font-size: 1.2em;
-        padding: 1em 2em;
-        background: #00aaff;
-        border: none;
-        border-radius: 8px;
-        color: white;
-      }
-    </style>
   </head>
-
   <body>
-    <div id="start-screen">
-      <h2>千佛洞 · 视频AR体验</h2>
-      <p>请点击按钮并允许摄像头权限</p>
-      <button id="start-button">开始体验</button>
-    </div>
+    <a-scene
+      mindar-image="imageTargetSrc: qianfo.mind"
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+    >
+      <a-assets timeout="10000">
+        <video id="qianfo-video" src="video.mp4" autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
+      </a-assets>
 
-    <div id="ar-scene" style="display: none;">
-      <a-scene
-        mindar-image="imageTargetSrc: qianfo.mind"
-        color-space="sRGB"
-        embedded
-        renderer="colorManagement: true, physicallyCorrectLights: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: true"
-      >
-        <a-assets timeout="10000">
-          <video id="qianfo-video" src="video.mp4"
-                 autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous"></video>
-        </a-assets>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-        <a-entity mindar-image-target="targetIndex: 0">
-          <a-video
-            src="#qianfo-video"
-            width="1"
-            height="0.5625"
-            position="0 0 0"
-            rotation="0 0 0">
-          </a-video>
-        </a-entity>
-      </a-scene>
-    </div>
-
-    <script>
-      document.getElementById("start-button").addEventListener("click", async function () {
-        document.getElementById("start-screen").style.display = "none";
-        document.getElementById("ar-scene").style.display = "block";
-        
-        // iOS Safari 兼容：恢复音频上下文
-        const context = AFRAME.scenes[0].audioListener.context;
-        if (context && context.state === "suspended") {
-          await context.resume();
-        }
-      });
-    </script>
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video src="#qianfo-video" width="1" height="0.5625" position="0 0 0" rotation="0 0 0"></a-video>
+      </a-entity>
+    </a-scene>
   </body>
 </html>
