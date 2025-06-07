@@ -13,128 +13,20 @@
             background: #000;
             overflow: hidden;
         }
-        
-        .start-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            z-index: 1000;
-            color: white;
-        }
-        
-        .start-button {
-            background: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        
-        .start-button:hover {
-            background: #45a049;
-        }
-        
-        .start-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .status {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #4CAF50;
-            padding: 10px 15px;
-            border-radius: 20px;
-            z-index: 999;
-            font-size: 14px;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            max-width: 300px;
-        }
-        
-        /* AR场景样式 */
-        a-scene {
-            width: 100% !important;
-            height: 100% !important;
-        }
-        
-        a-scene canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-        
-        .loading-spinner {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(76, 175, 80, 0.3);
-            border-top: 3px solid #4CAF50;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            z-index: 500;
-        }
-        
-        @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        
-        .progress-info {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 25px;
-            z-index: 999;
-            font-size: 16px;
-            text-align: center;
-            min-width: 200px;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 2px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: #4CAF50;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        
-        /* 确保MindAR的video元素正确显示 */
-        video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-        }
+        .start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 1000; color: white;}
+        .start-button { background: #4CAF50; border: none; color: white; padding: 15px 32px; text-align: center; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 20px;}
+        .start-button:hover { background: #45a049;}
+        .start-button:disabled { background: #666; cursor: not-allowed;}
+        .hidden { display: none;}
+        .status { position: fixed; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: #4CAF50; padding: 10px 15px; border-radius: 20px; z-index: 999; font-size: 14px; border: 1px solid rgba(76, 175, 80, 0.3); max-width: 300px;}
+        a-scene { width: 100% !important; height: 100% !important;}
+        a-scene canvas { width: 100% !important; height: 100% !important;}
+        .loading-spinner { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; border: 3px solid rgba(76, 175, 80, 0.3); border-top: 3px solid #4CAF50; border-radius: 50%; animation: spin 1s linear infinite; z-index: 500;}
+        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .progress-info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: white; padding: 15px 25px; border-radius: 25px; z-index: 999; font-size: 16px; text-align: center; min-width: 200px;}
+        .progress-bar { width: 100%; height: 4px; background: rgba(255, 255, 255, 0.3); border-radius: 2px; margin-top: 10px; overflow: hidden;}
+        .progress-fill { height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s ease;}
+        video { width: 100% !important; height: 100% !important; object-fit: cover !important;}
     </style>
 </head>
 <body>
@@ -149,13 +41,10 @@
             首次启动可能需要几秒钟
         </div>
     </div>
-    
     <!-- 状态显示 -->
     <div class="status" id="status">准备启动AR摄像头</div>
-    
     <!-- 加载动画 -->
     <div class="loading-spinner hidden" id="loadingSpinner"></div>
-    
     <!-- 进度信息 -->
     <div class="progress-info hidden" id="progressInfo">
         <div id="progressText">正在初始化...</div>
@@ -163,7 +52,6 @@
             <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
-
     <!-- AR场景 -->
     <a-scene 
         id="arScene"
@@ -198,7 +86,6 @@
             </a-video>
         </a-entity>
     </a-scene>
-
     <script>
         // DOM元素
         const startOverlay = document.getElementById('startOverlay');
@@ -210,119 +97,106 @@
         const progressFill = document.getElementById('progressFill');
         const arScene = document.getElementById('arScene');
         
-        // 状态变量
-        let arSystem = null;
         let isStarting = false;
-        
+        let arSystem = null; // mindar-image system
+
         function updateStatus(message) {
             status.textContent = message;
             console.log('状态:', message);
         }
-        
         function updateProgress(text, percent) {
             progressText.textContent = text;
             progressFill.style.width = percent + '%';
         }
-        
-        // 等待MindAR系统初始化
-        async function waitForMindAR() {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const maxAttempts = 30; // 15秒超时
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    arSystem = arScene.systems["mindar-image"];
-                    
-                    const progress = Math.min((attempts / maxAttempts) * 50, 50);
-                    updateProgress(`正在加载AR组件... (${attempts}/${maxAttempts})`, progress);
-                    
-                    if (arSystem) {
-                        clearInterval(checkInterval);
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('MindAR组件加载超时'));
-                    }
-                }, 500);
-            });
+
+        // 监听AR识别事件
+        function setupAREvents() {
+            const targetEntity = document.querySelector('[mindar-image-target]');
+            const arVideo = document.querySelector('#arVideo');
+            if (targetEntity && arVideo) {
+                targetEntity.addEventListener('targetFound', () => {
+                    updateStatus('🎉 检测到千佛洞！正在播放视频');
+                    arVideo.play().catch(e => {
+                        console.error('AR视频播放失败:', e);
+                        updateStatus('视频播放失败，但目标检测成功');
+                    });
+                });
+                targetEntity.addEventListener('targetLost', () => {
+                    updateStatus('🔍 目标丢失 - 请重新扫描千佛洞图片');
+                    arVideo.pause();
+                });
+            }
         }
 
-        // 启动AR系统的完整流程
+        // 主启动流程
         async function startARSystem() {
             try {
                 if (isStarting) return;
                 isStarting = true;
-                
                 updateStatus('正在启动AR系统...');
                 startButton.disabled = true;
                 loadingSpinner.classList.remove('hidden');
                 progressInfo.classList.remove('hidden');
-                
-                // 第一步：等待A-Frame场景加载
+
+                // 步骤1：等待A-Frame场景加载
                 updateProgress('正在加载A-Frame场景...', 10);
-                
                 if (!arScene.hasLoaded) {
-                    await new Promise((resolve) => {
+                    await new Promise(resolve => {
                         arScene.addEventListener('loaded', resolve, { once: true });
                     });
                 }
-                
-                updateProgress('场景加载完成', 25);
-                
-                // 第二步：等待MindAR系统初始化
-                updateProgress('正在初始化MindAR...', 30);
-                await waitForMindAR();
-                
-                updateProgress('MindAR组件已就绪', 60);
-                
-                // 第三步：配置摄像头参数
-                updateProgress('正在配置摄像头...', 70);
-                
-                // 检查摄像头权限
+                updateProgress('A-Frame场景加载完成', 25);
+
+                // 步骤2：等待mindar-image系统初始化（用arReady事件）
+                updateProgress('等待AR系统就绪...', 35);
+                await new Promise((resolve, reject) => {
+                    // 仅首次监听
+                    const readyHandler = () => {
+                        arSystem = arScene.systems["mindar-image"];
+                        resolve();
+                    };
+                    // 如果已ready，直接resolve
+                    if (arScene.systems["mindar-image"] && arScene.systems["mindar-image"].ready) {
+                        arSystem = arScene.systems["mindar-image"];
+                        resolve();
+                    } else {
+                        arScene.addEventListener('arReady', readyHandler, { once: true });
+                        setTimeout(() => {
+                            reject(new Error('MindAR系统初始化超时'));
+                        }, 15000);
+                    }
+                });
+                updateProgress('AR系统已就绪', 60);
+
+                // 步骤3：获取摄像头权限
+                updateProgress('检测摄像头权限...', 70);
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        }
+                        video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720}}
                     });
-                    
-                    // 立即释放测试流，让MindAR接管
                     stream.getTracks().forEach(track => track.stop());
                     updateProgress('摄像头权限已获取', 80);
-                    
                 } catch (permissionError) {
                     throw new Error('摄像头权限被拒绝或设备不可用');
                 }
-                
-                // 第四步：启动AR系统
-                updateProgress('正在启动AR识别...', 90);
-                
+
+                // 步骤4：隐藏overlay再启动AR（避免overlay挡住摄像头）
+                updateProgress('启动AR识别...', 90);
+                startOverlay.classList.add('hidden');
+                // 启动MindAR
                 await arSystem.start();
-                
                 updateProgress('AR系统启动成功！', 100);
-                
-                // 启动成功，隐藏所有加载界面
+
                 setTimeout(() => {
-                    startOverlay.classList.add('hidden');
                     loadingSpinner.classList.add('hidden');
                     progressInfo.classList.add('hidden');
-                    
                     updateStatus('🎯 AR已启动 - 请扫描千佛洞图片');
-                    
-                    // 设置AR事件监听
                     setupAREvents();
                 }, 1000);
-                
             } catch (error) {
                 console.error('AR启动失败:', error);
-                
-                // 显示详细错误信息
                 let errorMsg = '启动失败: ';
                 let suggestions = '请尝试:\n';
-                
                 if (error.message.includes('权限')) {
                     errorMsg += '摄像头权限问题';
                     suggestions += '1. 允许摄像头权限\n2. 刷新页面重试';
@@ -336,54 +210,24 @@
                     errorMsg += error.message;
                     suggestions += '1. 刷新页面\n2. 检查网络连接\n3. 尝试其他浏览器';
                 }
-                
                 updateStatus(`❌ ${errorMsg}`);
                 updateProgress(`错误: ${error.message}`, 0);
-                
                 startButton.disabled = false;
                 startButton.textContent = '重新启动';
                 loadingSpinner.classList.add('hidden');
-                
                 alert(errorMsg + '\n\n' + suggestions);
-                
                 isStarting = false;
             }
         }
 
-        // 设置AR事件监听
-        function setupAREvents() {
-            const targetEntity = document.querySelector('[mindar-image-target]');
-            const arVideo = document.querySelector('#arVideo');
-
-            if (targetEntity && arVideo) {
-                targetEntity.addEventListener('targetFound', () => {
-                    updateStatus('🎉 检测到千佛洞！正在播放视频');
-                    arVideo.play().catch(e => {
-                        console.error('AR视频播放失败:', e);
-                        updateStatus('视频播放失败，但目标检测成功');
-                    });
-                });
-
-                targetEntity.addEventListener('targetLost', () => {
-                    updateStatus('🔍 目标丢失 - 请重新扫描千佛洞图片');
-                    arVideo.pause();
-                });
-            }
-        }
-        
-        // 启动按钮事件
         startButton.addEventListener('click', () => {
             startARSystem();
         });
-        
+
         // 页面卸载时清理资源
         window.addEventListener('beforeunload', () => {
             if (arSystem) {
-                try {
-                    arSystem.stop();
-                } catch (e) {
-                    console.log('AR系统清理:', e);
-                }
+                try { arSystem.stop(); } catch (e) { console.log('AR系统清理:', e); }
             }
         });
     </script>
