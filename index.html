@@ -2,36 +2,44 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>千佛洞 AR</title>
+    <title>千佛洞视频AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; }
-      #ar-container { width: 100vw; height: 100vh; }
+      body, html {{
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }}
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
   </head>
   <body>
-    <div id="ar-container"></div>
-    <script type="module">
-      import {{ MindARThree }} from "https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js";
-      const mindarThree = new MindARThree({{
-        container: document.querySelector("#ar-container"),
-        imageTargetSrc: "./qianfo.mind",
-        maxTrack: 1
-      }});
-      const {{ renderer, scene, camera }} = mindarThree;
-      const anchor = mindarThree.addAnchor(0);
-      const loader = new THREE.GLTFLoader();
-      loader.load("https://modelviewer.dev/shared-assets/models/Buddha.glb", (gltf) => {{
-        gltf.scene.scale.set(0.4, 0.4, 0.4);
-        gltf.scene.position.set(0, 0, 0);
-        anchor.group.add(gltf.scene);
-      }});
-      await mindarThree.start();
-      renderer.setAnimationLoop(() => {{
-        renderer.render(scene, camera);
-      }});
-    </script>
+    <a-scene
+      mindar-image="imageTargetSrc: qianfo.mind"
+      color-space="sRGB"
+      embedded
+      renderer="colorManagement: true, physicallyCorrectLights"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+    >
+      <a-assets>
+        <video id="qianfo-video" src="https://freela.oss-cn-beijing.aliyuncs.com/AvatarGPTtest/Aurora01.mp4"
+               autoplay loop muted playsinline webkit-playsinline></video>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video 
+          src="#qianfo-video"
+          width="1"
+          height="0.5625"
+          position="0 0 0"
+          rotation="0 0 0">
+        </a-video>
+      </a-entity>
+    </a-scene>
   </body>
 </html>
