@@ -9,35 +9,58 @@
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        /* Your CSS remains largely the same, but we will hide the overlays by default */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            background: #000;
             color: white;
+            overflow: hidden;
         }
+        
         .container {
             height: 100vh;
             width: 100vw;
-            overflow: hidden;
             position: relative;
         }
+        
         #ar-scene {
             width: 100%;
             height: 100%;
-        }
-        /* Overlays should be hidden initially */
-        .start-overlay, .loading-overlay {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* 确保 A-Frame canvas 正确显示 */
+        #ar-scene canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+        }
+        
+        /* 覆盖层样式 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
             text-align: center;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 10;
+            transition: opacity 0.3s ease;
         }
+        
+        .overlay.hidden {
+            display: none;
+        }
+        
         .start-button {
             background: linear-gradient(135deg, #FFD700, #FFA500);
             border: none;
@@ -47,8 +70,16 @@
             font-size: 18px;
             font-weight: 600;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            transition: all 0.3s ease;
         }
-         .spinner {
+        
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-top: 4px solid #FFD700;
             border-radius: 50%;
@@ -57,23 +88,51 @@
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .info-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .hint-text {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: 20px;
+        }
+        
+        /* 调试信息 */
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 20;
+            max-width: 200px;
+        }
     </style>
 </head>
-<body ui-loading="loading" ui-scanning="scanning" ui-error="error">
-
+<body>
     <div class="container">
+        <!-- AR 场景 -->
         <a-scene
             id="ar-scene"
-            mindar-image="imageTargetSrc: https://arplus.github.io/AR-SLAM/qianfo.mind; autoStart: false; uiLoading: #loadingOverlay; uiScanning: #scanningOverlay; uiError: #errorOverlay"
+            mindar-image="imageTargetSrc: ./qianfo.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no"
             color-space="sRGB"
             embedded
-            renderer="colorManagement: true, physicallyCorrectLights: true"
+            renderer="colorManagement: true, physicallyCorrectLights: true, antialias: true"
             vr-mode-ui="enabled: false"
             device-orientation-permission-ui="enabled: false"
+            background="color: #000"
         >
             <a-assets>
                 <video 
@@ -84,7 +143,8 @@
                     muted 
                     playsinline 
                     webkit-playsinline
-                    crossorigin="anonymous">
+                    crossorigin="anonymous"
+                    preload="auto">
                 </video>
             </a-assets>
 
@@ -110,53 +170,145 @@
             </a-entity>
         </a-scene>
 
-        <div class="start-overlay" id="startOverlay">
+        <!-- 开始界面 -->
+        <div class="overlay" id="startOverlay">
+            <div class="info-text">🏛️ 千佛洞AR体验</div>
             <button class="start-button" id="startButton">开始AR之旅</button>
+            <div class="hint-text">请确保允许摄像头权限</div>
         </div>
 
-        <div class="loading-overlay" id="loadingOverlay">
+        <!-- 加载界面 -->
+        <div class="overlay hidden" id="loadingOverlay">
             <div class="spinner"></div>
-            <div>正在启动AR引擎...</div>
+            <div class="info-text">正在启动AR引擎...</div>
+            <div class="hint-text">首次启动可能需要几秒钟</div>
         </div>
-        <div class="loading-overlay" id="scanningOverlay" style="display: none;">
-            <div>请扫描千佛洞图标</div>
+
+        <!-- 扫描界面 -->
+        <div class="overlay hidden" id="scanningOverlay">
+            <div class="info-text">📷 请将摄像头对准千佛洞图标</div>
+            <div class="hint-text">确保光线充足，图标清晰可见</div>
         </div>
-         <div class="loading-overlay" id="errorOverlay" style="display: none;">
-            <div>AR启动失败。请刷新页面重试。</div>
+
+        <!-- 错误界面 -->
+        <div class="overlay hidden" id="errorOverlay">
+            <div class="info-text">❌ AR启动失败</div>
+            <div class="hint-text">请检查摄像头权限并刷新页面重试</div>
+            <button class="start-button" onclick="location.reload()">重新启动</button>
+        </div>
+
+        <!-- 调试信息 -->
+        <div class="debug-info" id="debugInfo">
+            状态: 未启动<br>
+            摄像头: 未检测<br>
+            目标: 未发现
         </div>
     </div>
 
     <script>
-        // CHANGE: Simplified the JavaScript significantly.
         document.addEventListener('DOMContentLoaded', () => {
             const startButton = document.querySelector('#startButton');
             const startOverlay = document.querySelector('#startOverlay');
+            const loadingOverlay = document.querySelector('#loadingOverlay');
+            const scanningOverlay = document.querySelector('#scanningOverlay');
+            const errorOverlay = document.querySelector('#errorOverlay');
+            const debugInfo = document.querySelector('#debugInfo');
             const sceneEl = document.querySelector('a-scene');
-            const arSystem = sceneEl.systems["mindar-image"];
             const video = document.querySelector("#arVideo");
-            
-            // 1. Add a click listener to the start button
-            startButton.addEventListener('click', () => {
-                // When clicked, start the AR system
-                arSystem.start(); 
-                // Hide the start overlay
-                startOverlay.style.display = 'none';
-            });
-
             const targetEntity = document.querySelector('#targetEntity');
 
-            // 2. Listen for the targetFound event
+            let arSystem = null;
+            let isARStarted = false;
+
+            function updateDebugInfo(status, camera = '未检测', target = '未发现') {
+                debugInfo.innerHTML = `状态: ${status}<br>摄像头: ${camera}<br>目标: ${target}`;
+            }
+
+            function showOverlay(overlay) {
+                document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+                overlay.classList.remove('hidden');
+            }
+
+            function hideAllOverlays() {
+                document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+            }
+
+            // 等待 A-Frame 场景完全加载
+            sceneEl.addEventListener('loaded', () => {
+                console.log('A-Frame scene loaded');
+                arSystem = sceneEl.systems["mindar-image"];
+                updateDebugInfo('场景已加载');
+            });
+
+            // 启动按钮点击事件
+            startButton.addEventListener('click', async () => {
+                console.log('Start button clicked');
+                updateDebugInfo('正在启动...');
+                showOverlay(loadingOverlay);
+
+                try {
+                    // 检查摄像头权限
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    stream.getTracks().forEach(track => track.stop()); // 释放临时流
+                    updateDebugInfo('权限获取成功', '已授权');
+
+                    // 启动 AR 系统
+                    if (arSystem) {
+                        await arSystem.start();
+                        isARStarted = true;
+                        updateDebugInfo('AR已启动', '运行中');
+                        showOverlay(scanningOverlay);
+                    } else {
+                        throw new Error('AR 系统未初始化');
+                    }
+                } catch (error) {
+                    console.error('AR startup failed:', error);
+                    updateDebugInfo('启动失败', '错误');
+                    showOverlay(errorOverlay);
+                }
+            });
+
+            // 目标检测到事件
             targetEntity.addEventListener("targetFound", event => {
                 console.log("Target found");
-                // Attempt to play the video when the target is found
+                updateDebugInfo('AR已启动', '运行中', '已发现');
+                hideAllOverlays();
                 video.play().catch(e => console.error("Video play failed:", e));
             });
 
-             // 3. Listen for the targetLost event to pause
-             targetEntity.addEventListener("targetLost", event => {
+            // 目标丢失事件
+            targetEntity.addEventListener("targetLost", event => {
                 console.log("Target lost");
+                updateDebugInfo('AR已启动', '运行中', '已丢失');
                 video.pause();
+                if (isARStarted) {
+                    showOverlay(scanningOverlay);
+                }
             });
+
+            // MindAR 系统事件监听
+            sceneEl.addEventListener('arReady', () => {
+                console.log('AR system ready');
+                updateDebugInfo('AR就绪', '运行中');
+            });
+
+            sceneEl.addEventListener('arError', (event) => {
+                console.error('AR error:', event.detail);
+                updateDebugInfo('AR错误', '失败');
+                showOverlay(errorOverlay);
+            });
+
+            // 页面可见性变化处理
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && isARStarted) {
+                    video.pause();
+                } else if (!document.hidden && isARStarted) {
+                    // 页面重新可见时，不自动播放视频，等待重新检测目标
+                }
+            });
+
+            // 初始化调试信息
+            updateDebugInfo('已加载');
         });
     </script>
 </body>
