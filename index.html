@@ -8,38 +8,206 @@
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-      body, html {{
+      body, html {
         margin: 0;
         padding: 0;
         overflow: hidden;
-      }}
+        font-family: Arial, sans-serif;
+      }
+      
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        font-size: 18px;
+      }
+      
+      #error {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(255, 0, 0, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 9998;
+        display: none;
+      }
+      
+      #instructions {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 9997;
+        text-align: center;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
+    <!-- 加载提示 -->
+    <div id="loading">正在初始化AR摄像头...</div>
+    
+    <!-- 错误提示 -->
+    <div id="error"></div>
+    
+    <!-- 使用说明 -->
+    <div id="instructions">
+      将摄像头对准千佛洞图标以查看AR内容
+    </div>
+
     <a-scene
-      mindar-image="imageTargetSrc: qianfo.mind"
+      mindar-image="imageTargetSrc: ./qianfo.mind; filterMinCF:0.0001; filterBeta: 0.01"
       color-space="sRGB"
       embedded
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: true"
+      background="color: #000"
     >
       <a-assets>
-        <video id="qianfo-video" src="https://freela.oss-cn-beijing.aliyuncs.com/AvatarGPTtest/Aurora01.mp4"
-               autoplay loop muted playsinline webkit-playsinline></video>
+        <video 
+          id="qianfo-video" 
+          src="https://freela.oss-cn-beijing.aliyuncs.com/AvatarGPTtest/Aurora01.mp4"
+          autoplay 
+          loop 
+          muted 
+          playsinline 
+          webkit-playsinline
+          crossorigin="anonymous">
+        </video>
       </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-camera 
+        position="0 0 0" 
+        look-controls="enabled: false"
+        cursor="rayOrigin: mouse">
+      </a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
         <a-video 
           src="#qianfo-video"
-          width="1"
-          height="0.5625"
+          width="1.5"
+          height="0.84375"
           position="0 0 0"
-          rotation="0 0 0">
+          rotation="-90 0 0"
+          opacity="0.9">
         </a-video>
+        
+        <!-- 添加一个简单的边框效果 -->
+        <a-plane 
+          color="#FFD700" 
+          width="1.6" 
+          height="0.94375" 
+          position="0 0 -0.001"
+          rotation="-90 0 0"
+          opacity="0.3">
+        </a-plane>
       </a-entity>
     </a-scene>
+
+    <script>
+      // 错误处理和调试
+      const loading = document.getElementById('loading');
+      const errorDiv = document.getElementById('error');
+      
+      function showError(message) {
+        console.error('AR Error:', message);
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        loading.style.display = 'none';
+      }
+      
+      function hideLoading() {
+        loading.style.display = 'none';
+      }
+      
+      // 检查浏览器支持
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showError('您的浏览器不支持摄像头访问，请使用Chrome、Firefox或Safari最新版本');
+      }
+      
+      // 检查HTTPS
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        showError('请在HTTPS环境下运行此应用，或使用localhost');
+      }
+      
+      // A-Frame场景事件监听
+      const sceneEl = document.querySelector('a-scene');
+      
+      sceneEl.addEventListener('loaded', () => {
+        console.log('A-Frame场景加载完成');
+      });
+      
+      // MindAR事件监听
+      sceneEl.addEventListener('renderstart', () => {
+        console.log('AR渲染开始');
+        hideLoading();
+      });
+      
+      // 目标检测事件
+      const targetEl = document.querySelector('[mindar-image-target]');
+      
+      targetEl.addEventListener('targetFound', () => {
+        console.log('检测到目标图像！');
+        // 确保视频播放
+        const video = document.getElementById('qianfo-video');
+        if (video.paused) {
+          video.play().catch(e => console.log('视频播放失败:', e));
+        }
+      });
+      
+      targetEl.addEventListener('targetLost', () => {
+        console.log('目标图像丢失');
+      });
+      
+      // 处理权限请求
+      window.addEventListener('load', async () => {
+        try {
+          // 请求摄像头权限
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',  // 后置摄像头
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          });
+          
+          // 立即停止流，让MindAR接管
+          stream.getTracks().forEach(track => track.stop());
+          console.log('摄像头权限获取成功');
+          
+        } catch (err) {
+          console.error('摄像头权限获取失败:', err);
+          showError(`摄像头访问失败: ${err.message}。请允许摄像头权限并刷新页面。`);
+        }
+      });
+      
+      // 检查文件是否存在
+      fetch('./qianfo.mind')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`qianfo.mind文件未找到 (${response.status})`);
+          }
+          console.log('qianfo.mind文件检查通过');
+        })
+        .catch(err => {
+          showError(`无法加载qianfo.mind文件: ${err.message}`);
+        });
+    </script>
   </body>
 </html>
