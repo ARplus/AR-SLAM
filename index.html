@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>千佛洞 AR</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #ar-container { width: 100vw; height: 100vh; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+  </head>
+  <body>
+    <div id="ar-container"></div>
+    <script type="module">
+      import {{ MindARThree }} from "https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-three.prod.js";
+      const mindarThree = new MindARThree({{
+        container: document.querySelector("#ar-container"),
+        imageTargetSrc: "./qianfo.mind",
+        maxTrack: 1
+      }});
+      const {{ renderer, scene, camera }} = mindarThree;
+      const anchor = mindarThree.addAnchor(0);
+      const loader = new THREE.GLTFLoader();
+      loader.load("https://modelviewer.dev/shared-assets/models/Buddha.glb", (gltf) => {{
+        gltf.scene.scale.set(0.4, 0.4, 0.4);
+        gltf.scene.position.set(0, 0, 0);
+        anchor.group.add(gltf.scene);
+      }});
+      await mindarThree.start();
+      renderer.setAnimationLoop(() => {{
+        renderer.render(scene, camera);
+      }});
+    </script>
+  </body>
+</html>
