@@ -418,9 +418,107 @@
             log(text);
         }
         
-        function updateStatus(icon, text) {
-            document.getElementById('statusIcon').textContent = icon;
-            document.getElementById('statusText').textContent = text;
+        // 完成AR初始化
+        function completeARInit() {
+            if (arInitialized) return;
+            
+            arInitialized = true;
+            updateDebugStatus('MindAR', '✅ 运行中');
+            
+            // 隐藏加载界面，显示状态栏
+            loadingOverlay.style.display = 'none';
+            statusOverlay.style.display = 'block';
+            
+            updateStatus('🔍', '寻找千佛洞图标...');
+            
+            // 设置目标检测事件（移到这里确保在正确时机绑定）
+            setupTargetEvents();
+        }
+        
+        // 检查MindAR状态
+        function checkMindARStatus() {
+            const scene = document.getElementById('arScene');
+            
+            log('检查场景状态...');
+            log(`场景已加载: ${scene.hasLoaded}`);
+            log(`场景是否播放: ${scene.is('playing')}`);
+            
+            // 检查是否有canvas元素（表示渲染已开始）
+            const canvas = scene.querySelector('canvas');
+            if (canvas) {
+                log('发现渲染canvas，AR可能已启动');
+                completeARInit();
+                return;
+            }
+            
+            // 如果5秒后还没有canvas，强制启动
+            setTimeout(() => {
+                if (!arInitialized) {
+                    const canvas = scene.querySelector('canvas');
+                    if (canvas) {
+                        log('延迟发现canvas，强制完成初始化');
+                        completeARInit();
+                    } else {
+                        log('未发现canvas，尝试强制启动');
+                        forceStartAR();
+                    }
+                }
+            }, 5000);
+        }
+        
+        // 强制启动AR
+        function forceStartAR() {
+            log('强制启动AR模式');
+            updateLoadingText('强制启动AR...');
+            
+            // 直接显示AR界面
+            setTimeout(() => {
+                completeARInit();
+                updateStatus('⚠️', '强制启动模式 - 将摄像头对准千佛洞图标');
+            }, 1000);
+        }
+        
+        // 设置目标检测事件
+        function setupTargetEvents() {
+            log('设置目标检测事件...');
+            
+            const targetEntity = document.getElementById('targetEntity');
+            const videoPlane = document.getElementById('videoPlane');
+            const ring = targetEntity.querySelector('a-ring');
+            
+            if (!targetEntity) {
+                log('警告: 未找到目标实体');
+                return;
+            }
+            
+            targetEntity.addEventListener('targetFound', function() {
+                log('🎯 检测到千佛洞图标！');
+                updateDebugStatus('Target', '✅ 已检测');
+                
+                // 显示AR内容
+                if (videoPlane) videoPlane.setAttribute('visible', 'true');
+                if (ring) ring.setAttribute('visible', 'true');
+                
+                // 确保视频播放
+                const video = document.getElementById('arVideo');
+                if (video && video.paused) {
+                    video.play().catch(e => log('视频播放失败: ' + e.message));
+                }
+                
+                updateStatus('✨', 'AR内容已激活！');
+            });
+            
+            targetEntity.addEventListener('targetLost', function() {
+                log('📱 目标图像丢失');
+                updateDebugStatus('Target', '❌ 丢失');
+                
+                if (videoPlane) videoPlane.setAttribute('visible', 'false');
+                if (ring) ring.setAttribute('visible', 'false');
+                
+                updateStatus('🔍', '寻找千佛洞图标...');
+            });
+            
+            log('目标检测事件设置完成');
         }
         
         // 启动AR（参考面部检测的启动流程）
@@ -468,18 +566,41 @@
                 // 等待A-Frame场景准备好
                 const scene = document.getElementById('arScene');
                 
-                // 监听MindAR事件
+                updateLoadingText('正在加载AR模型...');
+                
+                // 设置超时检测
+                const initTimeout = setTimeout(() => {
+                    if (!arInitialized) {
+                        log('AR初始化超时，强制启动');
+                        forceStartAR();
+                    }
+                }, 8000);
+                
+                // 监听多个可能的事件
                 scene.addEventListener('renderstart', function() {
-                    log('AR渲染开始');
-                    arInitialized = true;
-                    updateDebugStatus('MindAR', '✅ 运行中');
-                    
-                    // 隐藏加载界面，显示状态栏
-                    loadingOverlay.style.display = 'none';
-                    statusOverlay.style.display = 'block';
-                    
-                    updateStatus('🔍', '寻找千佛洞图标...');
+                    log('AR渲染开始 (renderstart)');
+                    clearTimeout(initTimeout);
+                    completeARInit();
                 });
+                
+                scene.addEventListener('loaded', function() {
+                    log('A-Frame场景加载完成');
+                    // 延迟一下再检查MindAR状态
+                    setTimeout(() => {
+                        if (!arInitialized) {
+                            log('手动检查MindAR状态...');
+                            checkMindARStatus();
+                        }
+                    }, 2000);
+                });
+                
+                // 检查是否已经渲染
+                setTimeout(() => {
+                    if (scene.hasLoaded && !arInitialized) {
+                        log('场景已加载，检查渲染状态...');
+                        checkMindARStatus();
+                    }
+                }, 3000);
                 
                 // 目标检测事件
                 const targetEntity = document.getElementById('targetEntity');
