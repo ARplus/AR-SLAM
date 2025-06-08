@@ -4,12 +4,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <!-- ✅ 注册 Chroma Key 着色器 -->
     <script>
-      // 绿幕着色器注册
       AFRAME.registerShader('chroma-key', {
         schema: {
           src: { type: 'map' },
-          color: { type: 'color', default: '#00ff00' }, // 绿幕色
+          color: { type: 'color', default: '#00ff00' }, // 绿色背景
         },
         vertexShader: `
           varying vec2 vUV;
@@ -25,7 +26,7 @@
           void main() {
             vec4 videoColor = texture2D(src, vUV);
             float diff = distance(videoColor.rgb, color);
-            if (diff < 0.4) discard;  // 距离绿色太近就丢弃，透明
+            if (diff < 0.4) discard; // 绿色区域透明
             gl_FragColor = videoColor;
           }
         `,
@@ -33,27 +34,42 @@
       });
     </script>
   </head>
+
   <body>
-    <a-scene mindar-image="imageTargetSrc: ./qianfo.mind" 
-             color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights, alpha: true" 
-             vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
-             
+    <a-scene
+      mindar-image="imageTargetSrc: ./qianfo.mind"
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true, alpha: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+    >
+
+      <!-- ✅ 资源区：加载绿幕视频 -->
       <a-assets>
-        <video id="video" autoplay loop muted playsinline crossorigin="anonymous" src="./video-green.mp4"></video>
+        <video
+          id="video"
+          autoplay
+          loop
+          muted
+          playsinline
+          crossorigin="anonymous"
+          src="./video-green.mp4"
+        ></video>
       </a-assets>
 
+      <!-- ✅ 摄像头 -->
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+      <!-- ✅ 识别后播放绿幕视频，1:1 显示 -->
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane 
-          position="0 0 0" 
-          width="1" 
-          height="1" 
-          material="shader: chroma-key; src: #video; color: #00ff00">
-        </a-plane>
+        <a-plane
+          width="1"
+          height="1"
+          position="0 0 0"
+          material="shader: chroma-key; src: #video; color: #00ff00"
+        ></a-plane>
       </a-entity>
+
     </a-scene>
   </body>
 </html>
