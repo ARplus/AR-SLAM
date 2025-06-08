@@ -46,16 +46,18 @@
         
         const stabilizer = {
           positionHistory: [],
-          maxHistory: 5,
-          smoothFactor: 0.7,
-          targetFPS: 30,
+          maxHistory: 3,        // 减少历史记录，提高响应性
+          smoothFactor: 0.8,    // 提高响应性
+          targetFPS: 60,        // 提高到60FPS
           lastUpdateTime: 0,
-          updateInterval: 1000 / 30
+          updateInterval: 1000 / 60,  // 约16ms
+          motionThreshold: 15,  // 运动检测阈值
+          isMoving: false       // 运动状态
         };
         
         let previousFrame = null;
         let frameBuffer = [];
-        const maxFrameBuffer = 3;
+        const maxFrameBuffer = 2;  // 减少缓冲帧数
         
         function smoothPosition(currentPos) {
           stabilizer.positionHistory.push(currentPos);
@@ -82,17 +84,28 @@
           if (!previousData) return true;
           
           let totalDiff = 0;
-          const sampleRate = 100;
+          const sampleRate = 50; // 更密集的采样
+          let significantPixels = 0;
           
           for (let i = 0; i < currentData.length; i += 4 * sampleRate) {
             const rDiff = Math.abs(currentData[i] - previousData[i]);
             const gDiff = Math.abs(currentData[i + 1] - previousData[i + 1]);
             const bDiff = Math.abs(currentData[i + 2] - previousData[i + 2]);
-            totalDiff += (rDiff + gDiff + bDiff) / 3;
+            const pixelDiff = (rDiff + gDiff + bDiff) / 3;
+            
+            totalDiff += pixelDiff;
+            if (pixelDiff > 20) significantPixels++; // 计算显著变化的像素数
           }
           
           const avgDiff = totalDiff / (currentData.length / 4 / sampleRate);
-          return avgDiff > 10;
+          const motionRatio = significantPixels / (currentData.length / 4 / sampleRate);
+          
+          // 检测是否在运动
+          stabilizer.isMoving = avgDiff > stabilizer.motionThreshold || motionRatio > 0.1;
+          
+          // 运动时更敏感，静态时更稳定
+          const threshold = stabilizer.isMoving ? 5 : 15;
+          return avgDiff > threshold;
         }
         
         function setupTexture() {
