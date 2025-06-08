@@ -3,47 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    
-    <script>
-      // 注册chroma key shader组件
-      AFRAME.registerShader('chromakey', {
-        schema: {
-          src: {type: 'map'},
-          color: {type: 'color', default: '#00FF00'},
-          threshold: {type: 'number', default: 0.4},
-          smoothing: {type: 'number', default: 0.1}
-        },
-        
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        
-        fragmentShader: `
-          uniform sampler2D src;
-          uniform vec3 color;
-          uniform float threshold;
-          uniform float smoothing;
-          varying vec2 vUv;
-          
-          void main() {
-            vec4 textureColor = texture2D(src, vUv);
-            
-            // 计算像素颜色与绿色的距离
-            float colorDistance = length(textureColor.rgb - color);
-            
-            // 使用smoothstep创建平滑的alpha过渡
-            float alpha = smoothstep(threshold - smoothing, threshold + smoothing, colorDistance);
-            
-            // 保持原始颜色，但调整透明度
-            gl_FragColor = vec4(textureColor.rgb, textureColor.a * alpha);
-          }
-        `
-      });
-    </script>
+    <script src="https://cdn.jsdelivr.net/gh/jesperkb/aframe-chromakey-material/dist/aframe-chromakey-material.min.js"></script>
   </head>
   <body>
     <a-scene mindar-image="imageTargetSrc: ./qianfo.mind" 
@@ -60,11 +20,11 @@
       
       <a-entity mindar-image-target="targetIndex: 0">
         <a-plane 
-          src="#video" 
-          material="shader: chromakey; src: #video; color: #00FF00; threshold: 0.4; smoothing: 0.1; transparent: true; alphaTest: 0.1"
-          width="1" 
-          height="0.1" 
-          position="0 0 0.01">
+            src="#video" 
+            material="shader: chromakey; color: #00FF00;"
+            width="1" 
+            height="1" 
+            position="0 0 0">
         </a-plane>
       </a-entity>
       
