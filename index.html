@@ -5,14 +5,37 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   </head>
   <body>
+    <!-- 启动界面 -->
+    <div id="startScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; justify-content: center; align-items: center; z-index: 1000; font-family: Arial, sans-serif;">
+      <div style="text-align: center; color: white;">
+        <h1 style="font-size: 2.5em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">🏯 千佛洞 AR</h1>
+        <p style="font-size: 1.2em; margin-bottom: 30px; opacity: 0.9;">体验有声绿幕视频的增强现实</p>
+        <button id="startButton" style="
+          background: #fff; 
+          color: #667eea; 
+          border: none; 
+          padding: 15px 30px; 
+          font-size: 1.2em; 
+          border-radius: 25px; 
+          cursor: pointer; 
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          🎵 开始有声 AR 体验
+        </button>
+        <p style="font-size: 0.9em; margin-top: 20px; opacity: 0.7;">点击后将启用摄像头和音频播放</p>
+      </div>
+    </div>
+
     <a-scene mindar-image="imageTargetSrc: ./qianfo.mind" 
              color-space="sRGB" 
              renderer="colorManagement: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
+             device-orientation-permission-ui="enabled: false"
+             loading-screen="enabled: false">
       
       <a-assets>
-        <video id="video" autoplay loop muted playsinline src="./video.mp4" crossorigin="anonymous"></video>
+        <video id="video" autoplay loop playsinline src="./video.mp4" crossorigin="anonymous"></video>
         <canvas id="chromaCanvas" width="512" height="512"></canvas>
       </a-assets>
 
@@ -27,11 +50,19 @@
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
+        const scene = document.querySelector('a-scene');
         const video = document.querySelector('#video');
         const canvas = document.querySelector('#chromaCanvas');
         const ctx = canvas.getContext('2d');
         let plane;
         let canvasTexture;
+        let isTracking = false;
+        
+        // 初始隐藏场景和暂停视频
+        scene.style.display = 'none';
+        video.pause();
         
         const chromaKey = {
           threshold: 60,
@@ -46,18 +77,78 @@
         
         const stabilizer = {
           positionHistory: [],
-          maxHistory: 3,        // 减少历史记录，提高响应性
-          smoothFactor: 0.8,    // 提高响应性
-          targetFPS: 60,        // 提高到60FPS
+          maxHistory: 3,
+          smoothFactor: 0.8,
+          targetFPS: 60,
           lastUpdateTime: 0,
-          updateInterval: 1000 / 60,  // 约16ms
-          motionThreshold: 15,  // 运动检测阈值
-          isMoving: false       // 运动状态
+          updateInterval: 1000 / 60,
+          motionThreshold: 15,
+          isMoving: false
         };
         
         let previousFrame = null;
         let frameBuffer = [];
-        const maxFrameBuffer = 2;  // 减少缓冲帧数
+        const maxFrameBuffer = 2;
+        
+        // 启动按钮点击事件
+        startButton.addEventListener('click', async function() {
+          try {
+            // 隐藏启动界面
+            startScreen.style.display = 'none';
+            
+            // 显示AR场景
+            scene.style.display = 'block';
+            
+            // 启用视频音频并播放
+            video.muted = false;
+            await video.play();
+            
+            // 等待场景加载
+            await new Promise(resolve => {
+              if (scene.hasLoaded) {
+                resolve();
+              } else {
+                scene.addEventListener('loaded', resolve);
+              }
+            });
+            
+            console.log('有声AR场景已启动');
+            setupTracking();
+            
+          } catch (error) {
+            console.error('启动AR失败:', error);
+            alert('启动AR失败，请检查摄像头和音频权限并刷新页面重试');
+            startScreen.style.display = 'flex';
+            scene.style.display = 'none';
+          }
+        });
+        
+        // 设置追踪功能
+        function setupTracking() {
+          const targetEntity = document.querySelector('[mindar-image-target]');
+          
+          if (targetEntity) {
+            targetEntity.addEventListener('targetFound', function() {
+              console.log('识别目标找到 - 播放有声视频');
+              isTracking = true;
+              
+              // 确保视频播放且有声音
+              if (video.paused) {
+                video.play().catch(e => console.log('视频播放失败:', e));
+              }
+              video.muted = false;
+              video.volume = 1.0;
+            });
+            
+            targetEntity.addEventListener('targetLost', function() {
+              console.log('识别目标丢失 - 暂停音频');
+              isTracking = false;
+              
+              // 可选：丢失目标时静音但继续播放（保持绿幕处理）
+              video.muted = true;
+            });
+          }
+        }
         
         function smoothPosition(currentPos) {
           stabilizer.positionHistory.push(currentPos);
@@ -161,7 +252,10 @@
         function processChromaKey() {
           const currentTime = performance.now();
           
-          if (currentTime - stabilizer.lastUpdateTime < stabilizer.updateInterval) {
+          // 动态调整更新间隔 - 运动时更快
+          const currentInterval = stabilizer.isMoving ? 8 : stabilizer.updateInterval; // 运动时约120fps
+          
+          if (currentTime - stabilizer.lastUpdateTime < currentInterval) {
             requestAnimationFrame(processChromaKey);
             return;
           }
@@ -197,28 +291,34 @@
               }
             }
             
-            frameBuffer.push(new Uint8ClampedArray(data));
-            if (frameBuffer.length > maxFrameBuffer) {
-              frameBuffer.shift();
-            }
-            
-            if (frameBuffer.length >= 2) {
-              for (let i = 0; i < data.length; i += 4) {
-                let avgR = 0, avgG = 0, avgB = 0, avgA = 0;
-                
-                frameBuffer.forEach(frame => {
-                  avgR += frame[i];
-                  avgG += frame[i + 1];
-                  avgB += frame[i + 2];
-                  avgA += frame[i + 3];
-                });
-                
-                const count = frameBuffer.length;
-                data[i] = Math.round(avgR / count);
-                data[i + 1] = Math.round(avgG / count);
-                data[i + 2] = Math.round(avgB / count);
-                data[i + 3] = Math.round(avgA / count);
+            // 动态帧缓冲 - 运动时减少缓冲
+            if (!stabilizer.isMoving) {
+              frameBuffer.push(new Uint8ClampedArray(data));
+              if (frameBuffer.length > maxFrameBuffer) {
+                frameBuffer.shift();
               }
+              
+              if (frameBuffer.length >= 2) {
+                for (let i = 0; i < data.length; i += 4) {
+                  let avgR = 0, avgG = 0, avgB = 0, avgA = 0;
+                  
+                  frameBuffer.forEach(frame => {
+                    avgR += frame[i];
+                    avgG += frame[i + 1];
+                    avgB += frame[i + 2];
+                    avgA += frame[i + 3];
+                  });
+                  
+                  const count = frameBuffer.length;
+                  data[i] = Math.round(avgR / count);
+                  data[i + 1] = Math.round(avgG / count);
+                  data[i + 2] = Math.round(avgB / count);
+                  data[i + 3] = Math.round(avgA / count);
+                }
+              }
+            } else {
+              // 运动时清空缓冲，直接使用当前帧
+              frameBuffer = [];
             }
             
             previousFrame = new Uint8ClampedArray(data);
@@ -240,23 +340,48 @@
           const targetEntity = document.querySelector('[mindar-image-target]');
           if (targetEntity) {
             let lastPosition = { x: 0, y: 0, z: 0 };
+            let consecutiveSmallMoves = 0;
             
             setInterval(() => {
               const currentPosition = targetEntity.getAttribute('position');
               if (currentPosition) {
-                const smoothedPos = smoothPosition(currentPosition);
-                
                 const positionDiff = Math.sqrt(
-                  Math.pow(smoothedPos.x - lastPosition.x, 2) +
-                  Math.pow(smoothedPos.y - lastPosition.y, 2) +
-                  Math.pow(smoothedPos.z - lastPosition.z, 2)
+                  Math.pow(currentPosition.x - lastPosition.x, 2) +
+                  Math.pow(currentPosition.y - lastPosition.y, 2) +
+                  Math.pow(currentPosition.z - lastPosition.z, 2)
                 );
                 
-                if (positionDiff > 0.001) {
-                  lastPosition = smoothedPos;
+                // 动态调整位置更新阈值
+                let threshold = 0.001;
+                
+                if (stabilizer.isMoving) {
+                  threshold = 0.0001; // 运动时更敏感
+                  consecutiveSmallMoves = 0;
+                } else {
+                  // 静态时，连续小幅移动后提高阈值
+                  if (positionDiff < 0.005) {
+                    consecutiveSmallMoves++;
+                    if (consecutiveSmallMoves > 10) {
+                      threshold = 0.01; // 增加阈值，减少微抖动
+                    }
+                  } else {
+                    consecutiveSmallMoves = 0;
+                  }
+                }
+                
+                if (positionDiff > threshold) {
+                  // 动态平滑处理
+                  if (stabilizer.isMoving) {
+                    // 运动时快速响应
+                    lastPosition = currentPosition;
+                  } else {
+                    // 静态时平滑更新
+                    const smoothedPos = smoothPosition(currentPosition);
+                    lastPosition = smoothedPos;
+                  }
                 }
               }
-            }, 16);
+            }, stabilizer.isMoving ? 8 : 16); // 运动时更高频率检查
           }
         });
         
