@@ -31,12 +31,34 @@
         const video = document.querySelector('#video');
         const canvas = document.querySelector('#chromaCanvas');
         const ctx = canvas.getContext('2d');
+        let plane;
+        let canvasTexture;
         
         // 绿幕抠图参数
         const chromaKey = {
           threshold: 80,  // 绿色容忍度 (0-255)
           smoothing: 40   // 边缘平滑度
         };
+        
+        function setupTexture() {
+          // 获取A-Frame平面元素
+          plane = document.querySelector('a-plane');
+          
+          // 创建Three.js纹理并应用到材质
+          if (plane && plane.getObject3D('mesh')) {
+            canvasTexture = new THREE.CanvasTexture(canvas);
+            canvasTexture.flipY = false;
+            
+            const material = new THREE.MeshBasicMaterial({
+              map: canvasTexture,
+              transparent: true,
+              alphaTest: 0.1
+            });
+            
+            plane.getObject3D('mesh').material = material;
+            console.log('纹理设置完成');
+          }
+        }
         
         function processChromaKey() {
           if (video.readyState >= video.HAVE_CURRENT_DATA) {
@@ -69,11 +91,21 @@
             
             // 将处理后的数据写回canvas
             ctx.putImageData(imageData, 0, 0);
+            
+            // 通知Three.js纹理已更新
+            if (canvasTexture) {
+              canvasTexture.needsUpdate = true;
+            }
           }
           
           // 继续下一帧
           requestAnimationFrame(processChromaKey);
         }
+        
+        // 当A-Frame场景加载完成时设置纹理
+        document.querySelector('a-scene').addEventListener('loaded', function() {
+          setTimeout(setupTexture, 100); // 稍微延迟确保元素完全加载
+        });
         
         // 当视频准备好时开始处理
         video.addEventListener('loadeddata', function() {
