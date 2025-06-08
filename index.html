@@ -34,10 +34,10 @@
         let plane;
         let canvasTexture;
         
-        // 绿幕抠图参数
+        // 绿幕抠图参数 - 优化后的设置
         const chromaKey = {
-          threshold: 80,  // 绿色容忍度 (0-255)
-          smoothing: 40   // 边缘平滑度
+          threshold: 60,  // 降低阈值，更精确
+          smoothing: 20   // 减少平滑度，保持颜色准确
         };
         
         function setupTexture() {
@@ -47,7 +47,7 @@
           // 创建Three.js纹理并应用到材质
           if (plane && plane.getObject3D('mesh')) {
             canvasTexture = new THREE.CanvasTexture(canvas);
-            canvasTexture.flipY = false;
+            canvasTexture.flipY = true; // 修复上下反转问题
             
             const material = new THREE.MeshBasicMaterial({
               map: canvasTexture,
@@ -69,23 +69,27 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
             
-            // 处理每个像素
+            // 更精确的绿幕抠图算法
             for (let i = 0; i < data.length; i += 4) {
-              const r = data[i];     // 红色
-              const g = data[i + 1]; // 绿色
-              const b = data[i + 2]; // 蓝色
-              const a = data[i + 3]; // 透明度
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
               
-              // 计算绿色强度 - 绿色应该明显大于红色和蓝色
+              // 改进的绿色检测算法
+              // 1. 绿色必须是主导色
+              // 2. 绿色必须明显高于红色和蓝色
+              // 3. 避免处理暗绿色（可能是阴影）
+              const isGreenDominant = g > r && g > b;
               const greenStrength = g - Math.max(r, b);
+              const isBrightEnough = g > 120; // 避免处理暗色
+              const colorDistance = Math.sqrt((r-0)*(r-0) + (g-255)*(g-255) + (b-0)*(b-0));
               
-              // 如果绿色强度超过阈值，设为透明
-              if (greenStrength > chromaKey.threshold && g > 100) {
-                data[i + 3] = 0; // 完全透明
-              } else if (greenStrength > chromaKey.threshold - chromaKey.smoothing) {
-                // 边缘平滑处理
-                const alpha = 1 - ((greenStrength - (chromaKey.threshold - chromaKey.smoothing)) / chromaKey.smoothing);
-                data[i + 3] = Math.max(0, Math.min(255, a * alpha));
+              // 只有满足所有条件才进行抠图
+              if (isGreenDominant && greenStrength > chromaKey.threshold && isBrightEnough && colorDistance < 150) {
+                // 根据绿色强度计算透明度
+                const intensity = greenStrength / 100;
+                const alpha = Math.max(0, 1 - intensity);
+                data[i + 3] = data[i + 3] * alpha;
               }
             }
             
